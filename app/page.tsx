@@ -4,7 +4,7 @@ import Link from "next/link";
 import { HomeSequence } from "./components/HomeSequence";
 
 export const metadata: Metadata = {
-  title: "Commercial specialists",
+  title: "Commercial specialists | 71Squared",
   description: "71Squared brings focused construction, flooring and plumbing expertise together for commercial environments.",
 };
 

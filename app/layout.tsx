@@ -3,7 +3,10 @@ import "./globals.css";
 import { SiteHeader } from "./components/SiteHeader";
 import { SiteFooter } from "./components/SiteFooter";
 
+const siteUrl = process.env.DEPLOY_PRIME_URL ?? process.env.URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: { default: "71Squared | Commercial specialists", template: "%s | 71Squared" },
   description: "Construction, flooring and plumbing for commercial environments built to move business forward.",
   openGraph: {

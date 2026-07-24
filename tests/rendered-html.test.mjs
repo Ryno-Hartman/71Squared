@@ -1,27 +1,16 @@
 import assert from "node:assert/strict";
-import { access } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const projectRoot = new URL("../", import.meta.url);
+const renderedRoot = new URL("../.next/server/app/", import.meta.url);
 
-async function render(pathname = "/") {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
-  const { default: worker } = await import(workerUrl.href);
-
-  return worker.fetch(
-    new Request(`http://localhost${pathname}`, { headers: { accept: "text/html" } }),
-    { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
-    { waitUntil() {}, passThroughOnException() {} },
-  );
+async function readRenderedPage(name) {
+  return readFile(new URL(name, renderedRoot), "utf8");
 }
 
-test("server-renders the 71Squared homepage", async () => {
-  const response = await render();
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
-
-  const html = await response.text();
+test("builds the 71Squared homepage as Next.js HTML", async () => {
+  const html = await readRenderedPage("index.html");
   assert.match(html, /Commercial specialists \| 71Squared/i);
   assert.match(html, /We build the spaces/);
   assert.match(html, /moves forward\./);
@@ -32,20 +21,21 @@ test("server-renders the 71Squared homepage", async () => {
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|Your site is taking shape/i);
 });
 
-test("server-renders every page in the approved sitemap", async () => {
-  for (const [pathname, expected] of [
-    ["/construction", "Commercial construction shaped around momentum"],
-    ["/flooring", "Floors engineered for the pressure of daily business"],
-    ["/plumbing", "Commercial plumbing built to keep operations moving"],
-    ["/contact", "Let’s move the"],
+test("builds every page in the approved sitemap", async () => {
+  for (const [filename, expected] of [
+    ["construction.html", "Commercial construction shaped around momentum"],
+    ["flooring.html", "Floors engineered for the pressure of daily business"],
+    ["plumbing.html", "Commercial plumbing built to keep operations moving"],
+    ["contact.html", "Let’s move the"],
   ]) {
-    const response = await render(pathname);
-    assert.equal(response.status, 200, pathname);
-    assert.match(await response.text(), new RegExp(expected, "i"), pathname);
+    const html = await readRenderedPage(filename);
+    assert.match(html, new RegExp(expected, "i"), filename);
   }
 });
 
-test("starter preview assets have been removed", async () => {
+test("creates the standard Next.js output expected by Netlify", async () => {
+  await access(new URL("../.next/BUILD_ID", import.meta.url));
+  await access(new URL("../.next/server/app-paths-manifest.json", import.meta.url));
   await assert.rejects(access(new URL("app/_sites-preview/SkeletonPreview.tsx", projectRoot)));
   await assert.rejects(access(new URL("app/_sites-preview/preview.css", projectRoot)));
 });
